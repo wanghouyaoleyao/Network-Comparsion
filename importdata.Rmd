@@ -1,0 +1,492 @@
+---
+title: "6102 project"
+author: "jiaqianyu-jy2880"
+date: "April.12"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r, echo = FALSE}
+ # Please don't remove this code!
+# Monte Carlo Test
+# More distance measure
+# how to deal with signed network/not simple network
+```
+
+
+```{r}
+# test whether is simple
+library(igraph)
+setwd("D:/columbia/course/GR6102/project/data")
+getwd()
+names <- dir("D:/columbia/course/GR6102/project/data")
+n <- length(names)
+
+
+simple <- rep(0,n)
+ 
+for(i in 1:n){
+  data <- read.table(names[i])
+  data <- as.matrix(data[,1:2])
+  data=as.character(data)
+  data=matrix(data,ncol=2)
+
+  graph<-graph.edgelist(data)
+  simple[i] <- is.simple(graph)
+}
+```
+
+```{r}
+#why not simple
+library(igraph)
+setwd("D:/columbia/course/GR6102/project/data")
+getwd()
+names <- dir("D:/columbia/course/GR6102/project/data")
+n <- length(names)
+
+self <- matrix(rep(0,n))
+more <- matrix(rep(0,n))
+  
+for(i in 1:n){
+  data <- read.table(names[i])
+  data <- as.matrix(data[,1:2])
+  data=as.character(data)
+  data=matrix(data,ncol=2)
+  self[i] <- sum(data[,1]==data[,2])
+  more[i] <- sum(data != unique(data))
+}
+# because there are some self edges
+# choose all the simple networks
+```
+
+```{r}
+#nodes and denisity of different networks
+library(igraph)
+setwd("D:/columbia/course/GR6102/project/data")
+getwd()
+names <- dir("D:/columbia/course/GR6102/project/data")
+n <- length(names)
+#t <- c()
+d <- c()
+#m=c()
+nn <- c()
+for(i in 1:n){
+  data <- read.table(names[i])
+  data <- as.matrix(data[,1:2])
+  data <- as.character(data)
+  data <- matrix(data,ncol=2)
+  # b=unique(c(grep("World",e[,1]),grep("World",e[,2])))
+  # e=e[-b,]
+  graph<-graph.edgelist(data)
+  #g=read.graph(names[i])
+  #t <- rbind(t,triad.census(graph))
+  nn <- c(nn,length(V(graph)))
+  d <- c(d,graph.density(graph))
+  #m=c(m,length(get.vertex.attribute(g)$name))
+#  print(names[i])
+}
+
+
+```
+
+
+```{r}
+# read names
+library(igraph)
+setwd("D:/columbia/course/GR6102/project/data")
+getwd()
+names <- dir("D:/columbia/course/GR6102/project/data")
+n <- length(names)
+
+#names
+t <- c()
+#d=c()
+#m=c()
+
+#features: triad 
+for(i in 1:n){
+  data <- read.table(names[i])
+  data <- as.matrix(data[,1:2])
+  data <- as.character(data)
+  data <- matrix(data,ncol=2)
+  # b=unique(c(grep("World",e[,1]),grep("World",e[,2])))
+  # e=e[-b,]
+  graph<-graph.edgelist(data)
+  #g=read.graph(names[i])
+  t <- rbind(t,triad.census(graph))
+  #d=c(d,graph.density(g))
+  #m=c(m,length(get.vertex.attribute(g)$name))
+#  print(names[i])
+}
+
+#delete the three discrete part
+u <-t[,4:16]
+## u=u[-c(5,18,19)]
+##u[u==0]=1
+##u=log(u)
+
+
+prob <- u
+for (i in 1:nrow(u)){
+  s <- sum(u[i,])
+  prob[i,] <- u[i,]/s
+}
+
+
+row.names(prob) <- names
+# dissimilarity matrix: use euclidean distance
+dismat <- dist(prob,method="euclidean")
+
+# cluster: using max distance
+result <- hclust(dismat,method="complete")
+plot(result,hang=-1)
+rect.hclust(result,k=5)
+
+# the clustering label for all the networks
+out <- cutree(result,k=5)
+library(mclust)
+labels <- rep(c(1,2,3,4,5),c(4,7,6,3,11))
+adjustedRandIndex(labels,out)
+
+
+# cluster: using average distance
+result1 <- hclust(dismat,method="average")
+plot(result1,hang=-1)
+rect.hclust(result1,k=5)
+
+# the clustering label for all the networks
+out1 <- cutree(result1,k=5)
+library(mclust)
+adjustedRandIndex(labels,out1)
+
+      
+```
+
+
+```{r}
+#features: in degree 
+# read names
+setwd("D:/columbia/course/GR6102/project/data")
+getwd()
+names <- dir("D:/columbia/course/GR6102/project/data")
+n <- length(names)
+i <- 1
+  
+data <- read.table(names[i])
+data <- as.matrix(data)
+data=as.character(data)
+data=matrix(data,ncol=2)
+graph<-graph.edgelist(data)
+inde1 <-degree.distribution(graph,mode="in",cumulative=FALSE)
+
+
+
+inde <- t(as.matrix(inde1)) 
+#d=c()
+#m=c()
+for(i in 2:n){
+  data <- read.table(names[i])
+  data <- as.matrix(data[,1:2])
+  data=as.character(data)
+  data=matrix(data,ncol=2)
+  graph<-graph.edgelist(data)
+  #in degree
+  
+  newinde <- degree.distribution(graph,mode="in",cumulative=FALSE)
+  newinde <- t(as.matrix(newinde))
+  if (ncol(inde)< ncol(newinde)){
+    inde <- cbind(inde,matrix(rep(0,nrow(inde)*(ncol(newinde)-ncol(inde))),ncol=(ncol(newinde)-ncol(inde))))
+  }
+  if (ncol(inde)> ncol(newinde)){
+      newinde <- c(newinde,rep(0,(ncol(inde)-ncol(newinde))))
+  }
+  inde <- rbind(inde,newinde)
+  }
+
+
+
+
+row.names(inde) <- names
+# dissimilarity matrix: use euclidean distance
+dismat <- dist(inde,method="euclidean")
+
+# cluster: using max distance
+result <- hclust(dismat,method="complete")
+plot(result,hang=-1)
+rect.hclust(result,k=5)
+
+# the clustering label for all the networks
+out <- cutree(result,k=5)
+library(mclust)
+labels <- rep(c(1,2,3,4,5),c(4,7,6,3,11))
+adjustedRandIndex(labels,out)
+
+
+# cluster: using average distance
+result1 <- hclust(dismat,method="average")
+plot(result1,hang=-1)
+rect.hclust(result1,k=5)
+
+# the clustering label for all the networks
+out1 <- cutree(result1,k=5)
+library(mclust)
+adjustedRandIndex(labels,out1)
+
+
+
+```
+
+
+```{r}
+#features: out degree 
+# read names
+setwd("D:/columbia/course/GR6102/project/data")
+getwd()
+names <- dir("D:/columbia/course/GR6102/project/data")
+n <- length(names)
+i <- 1
+  
+data <- read.table(names[i])
+data <- as.matrix(data)
+data=as.character(data)
+data=matrix(data,ncol=2)
+graph<-graph.edgelist(data)
+inde1 <-degree.distribution(graph,mode="out",cumulative=FALSE)
+
+
+
+inde <- t(as.matrix(inde1)) 
+#d=c()
+#m=c()
+for(i in 2:n){
+  data <- read.table(names[i])
+  data <- as.matrix(data[,1:2])
+  data=as.character(data)
+  data=matrix(data,ncol=2)
+  graph<-graph.edgelist(data)
+  #in degree
+  
+  newinde <- degree.distribution(graph,mode="out",cumulative=FALSE)
+  newinde <- t(as.matrix(newinde))
+  if (ncol(inde)< ncol(newinde)){
+    inde <- cbind(inde,matrix(rep(0,nrow(inde)*(ncol(newinde)-ncol(inde))),ncol=(ncol(newinde)-ncol(inde))))
+  }
+  if (ncol(inde)> ncol(newinde)){
+      newinde <- c(newinde,rep(0,(ncol(inde)-ncol(newinde))))
+  }
+  inde <- rbind(inde,newinde)
+  }
+
+
+
+
+row.names(inde) <- names
+# dissimilarity matrix: use euclidean distance
+dismat <- dist(inde,method="euclidean")
+
+# cluster: using max distance
+result <- hclust(dismat,method="complete")
+plot(result,hang=-1)
+rect.hclust(result,k=5)
+
+# the clustering label for all the networks
+out <- cutree(result,k=5)
+library(mclust)
+labels <- rep(c(1,2,3,4,5),c(4,7,6,3,11))
+adjustedRandIndex(labels,out)
+
+
+# cluster: using average distance
+result1 <- hclust(dismat,method="average")
+plot(result1,hang=-1)
+rect.hclust(result1,k=5)
+
+# the clustering label for all the networks
+out1 <- cutree(result1,k=5)
+library(mclust)
+adjustedRandIndex(labels,out1)
+
+
+```
+
+```{r}
+#features:degree 
+# read names
+setwd("D:/columbia/course/GR6102/project/data")
+getwd()
+names <- dir("D:/columbia/course/GR6102/project/data")
+n <- length(names)
+i <- 1
+  
+data <- read.table(names[i])
+data <- as.matrix(data)
+data=as.character(data)
+data=matrix(data,ncol=2)
+graph<-graph.edgelist(data)
+inde1 <-degree.distribution(graph,mode="all",cumulative=FALSE)
+
+
+
+inde <- t(as.matrix(inde1)) 
+#d=c()
+#m=c()
+for(i in 2:n){
+  data <- read.table(names[i])
+  data <- as.matrix(data[,1:2])
+  data=as.character(data)
+  data=matrix(data,ncol=2)
+  graph<-graph.edgelist(data)
+  #in degree
+  
+  newinde <- degree.distribution(graph,mode="all",cumulative=FALSE)
+  newinde <- t(as.matrix(newinde))
+  if (ncol(inde)< ncol(newinde)){
+    inde <- cbind(inde,matrix(rep(0,nrow(inde)*(ncol(newinde)-ncol(inde))),ncol=(ncol(newinde)-ncol(inde))))
+  }
+  if (ncol(inde)> ncol(newinde)){
+      newinde <- c(newinde,rep(0,(ncol(inde)-ncol(newinde))))
+  }
+  inde <- rbind(inde,newinde)
+  }
+
+
+
+
+row.names(inde) <- names
+# dissimilarity matrix: use euclidean distance
+dismat <- dist(inde,method="euclidean")
+
+# cluster: using max distance
+result <- hclust(dismat,method="complete")
+plot(result,hang=-1)
+rect.hclust(result,k=5)
+
+# the clustering label for all the networks
+out <- cutree(result,k=5)
+library(mclust)
+labels <- rep(c(1,2,3,4,5),c(4,7,6,3,11))
+adjustedRandIndex(labels,out)
+
+
+# cluster: using average distance
+result1 <- hclust(dismat,method="average")
+plot(result1,hang=-1)
+rect.hclust(result1,k=5)
+
+# the clustering label for all the networks
+out1 <- cutree(result1,k=5)
+library(mclust)
+adjustedRandIndex(labels,out1)
+
+
+```
+
+```{r}
+# read names
+library(igraph)
+setwd("D:/columbia/course/GR6102/project/data")
+getwd()
+names <- dir("D:/columbia/course/GR6102/project/data")
+n <- length(names)
+
+#names
+dy <- c()
+#d=c()
+#m=c()
+
+#features: triad 
+for(i in 1:n){
+  data <- read.table(names[i])
+  data <- as.matrix(data[,1:2])
+  data <- as.character(data)
+  data <- matrix(data,ncol=2)
+  # b=unique(c(grep("World",e[,1]),grep("World",e[,2])))
+  # e=e[-b,]
+  graph<-graph.edgelist(data)
+  #g=read.graph(names[i])
+  dy <- rbind(dy,dyad.census(graph))
+  #d=c(d,graph.density(g))
+  #m=c(m,length(get.vertex.attribute(g)$name))
+#  print(names[i])
+}
+
+#delete the three discrete part
+u <-t[,4:16]
+## u=u[-c(5,18,19)]
+##u[u==0]=1
+##u=log(u)
+
+
+prob <- u
+for (i in 1:nrow(u)){
+  s <- sum(u[i,])
+  prob[i,] <- u[i,]/s
+}
+
+
+row.names(prob) <- names
+# dissimilarity matrix: use euclidean distance
+dismat <- dist(prob,method="euclidean")
+
+# cluster: using max distance
+result <- hclust(dismat,method="complete")
+plot(result,hang=-1)
+rect.hclust(result,k=5)
+
+# the clustering label for all the networks
+out <- cutree(result,k=5)
+library(mclust)
+labels <- rep(c(1,2,3,4,5),c(4,7,6,3,11))
+adjustedRandIndex(labels,out)
+
+
+# cluster: using average distance
+result1 <- hclust(dismat,method="average")
+plot(result1,hang=-1)
+rect.hclust(result1,k=5)
+
+# the clustering label for all the networks
+out1 <- cutree(result1,k=5)
+library(mclust)
+adjustedRandIndex(labels,out1)
+
+      
+```
+
+
+```{r}
+# Monte Carlo Test
+set.seed(0)
+# generate 49 ER model with same size and densities
+newt <- c()
+for (i in 1:n){
+  ERgraph <- sample_gnp(nn[i],d[i],directed=TRUE)
+  newt <- rbind(newt,triad.census(ERgraph))
+}
+newu <-newt[,4:16]
+newprob <- newu
+for (j in 1:nrow(newu)){
+  s <- sum(newu[j,])
+  prob[j,] <- u[j,]/s
+}
+# dissimilarity matrix: use euclidean distance
+newdismat <- dist(newprob,method="euclidean")
+
+# cluster: using max distance
+newresult <- hclust(newdismat,method="complete")
+plot(newresult,hang=-1)
+rect.hclust(newresult,k=5)
+
+# the clustering label for all the networks
+newout <- cutree(newresult,k=5)
+library(mclust)
+labels <- rep(c(1,2,3,4,5),c(4,7,6,3,11))
+adjustedRandIndex(labels,newout)
+
+```
+
+```{r}
+ARIMC <- rep(0,49)
+ARIMC[2] <- adjustedRandIndex(labels,newout)
+```
